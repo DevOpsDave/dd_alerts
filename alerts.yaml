@@ -1,0 +1,16 @@
+alerts:
+  # metric:
+  #   
+  # over:
+  #
+  # alert_type:
+  # seperate_by:
+  #
+  # alert_condition:
+  # threshold:
+  # alert_stagger_time:
+  # 
+  # Name: The description of the alert.  Standard is [team]:[Environment]:
+  #
+  # message: This is how we notify. eg @pagerduty-Sodexo-Noncritical.
+  #
