@@ -76,7 +76,7 @@ class Alerts(object):
         if (api_key == None) or (app_key == None):
             config = ConfigParser.ConfigParser()
             if not os.path.isfile(config_file):
-                print "File %s does not exist!"
+                print "File {0} does not exist!".format(config_file)
                 exit(1)
             config.read(config_file)
             api.api_key = config.get('Main', 'api_key')
@@ -160,14 +160,18 @@ class Alerts(object):
     def update_datadog(self):
         """
         Update datadog with data in self.alerts.
+        To create a new alert:  Leave the id attribute None.  This will create a new alert.
+        To update the alert:  id must have a valid positive integer that maps to a current event.
+        To delet an event: make the id a negative number.  This will delete the alert.
         """
         for alert in self.alerts:
             if alert.is_live():
-                self.dapi.update_alert(alert.id, alert.name, alert.message,
-                        alert.silenced)
+                if alert.id < 0:
+                    self.dapi.delete_alert(abs(alert.id))
+                else:
+                    self.dapi.update_alert(alert.id, alert.query, alert.name, alert.message, alert.silenced)
             else:
-                self.dapi.alert(alert.query, alert.name, alert.message,
-                        alert.silenced)
+                self.dapi.alert(alert.query, alert.name, alert.message, alert.silenced)
 
 
 def cmd_line(argv):
@@ -212,9 +216,7 @@ def putalrts(args):
     """
     ddogAlerts = Alerts(args.api_key, args.app_key, args.config)
     ddogAlerts.load_alerts_from_file(args.from_file)
-    #pdb.set_trace()
     ddogAlerts.update_datadog()
-    print "hi"
 
 
 def main():
@@ -223,7 +225,6 @@ def main():
     """
     # Get the cmd line.
     args = cmd_line(sys.argv)
-    #pdb.set_trace()
 
     # case/switch dictionary.
     switch = {'getalerts': getalrts,
