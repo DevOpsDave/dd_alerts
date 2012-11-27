@@ -9,7 +9,7 @@ import yaml
 from dogapi import dog_http_api as api
 
 import pdb
-#pdb.set_trace()
+pdb.set_trace()
 
 class Alert(object):
     """
@@ -160,7 +160,6 @@ def getalrts(args):
     ddogAlerts.load_alerts_from_api(args.regex)
 
     print ddogAlerts.generate_yaml_string()
-    
 
 def putalrts(args):
     """
@@ -171,8 +170,6 @@ def putalrts(args):
     pdb.set_trace()
     ddogAlerts.update_datadog()
     print "hi"
-
-
 
 def main():
 
@@ -189,5 +186,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
