@@ -15,8 +15,6 @@ import ConfigParser
 from dogapi import dog_http_api as api
 
 import pdb
-pdb.set_trace()
-
 
 class Alert(object):
     """
@@ -71,6 +69,7 @@ class Alerts(object):
         1.  Use the values supplied at instantiation.
         2.  If None, see the config file.  self.config_file =  <input values> || '/etc/dd-agent/datadog.conf'
         """
+        pdb.set_trace()
         config_file = config_file
         config = None
         if (api_key == None) or (app_key == None):
@@ -78,9 +77,11 @@ class Alerts(object):
             if not os.path.isfile(config_file):
                 print "File {0} does not exist!".format(config_file)
                 exit(1)
+
             config.read(config_file)
-            api.api_key = config.get('Main', 'api_key')
-            api.application_key = config.get('Main', 'application_key')
+            api_key = config.get('Main', 'api_key')
+            application_key = config.get('Main', 'application_key')
+            if api_key or application
         else:
             api.api_key = api_key
             api.application_key = app_key
