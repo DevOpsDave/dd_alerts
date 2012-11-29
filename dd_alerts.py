@@ -16,6 +16,7 @@ from dogapi import dog_http_api as api
 
 import pdb
 
+
 class Alert(object):
     """
     Alert data type.  Holds data for specific alerts.
@@ -56,41 +57,59 @@ class Alerts(object):
     """
     Collection of alerts.
     """
-    def __init__(
-            self,
-            api_key,
-            app_key,
-            config_file
-            ):
-
+    def __init__(self, api_key=None, app_key=None, config_file=None):
         """
-        Api credentials are held here.  They are needed for the
-        load_alerts_from_api() and update_datadog() methods.
-        1.  Use the values supplied at instantiation.
-        2.  If None, see the config file.  self.config_file =  <input values> || '/etc/dd-agent/datadog.conf'
+        Get credentials and setup api.
         """
-        pdb.set_trace()
-        config_file = config_file
-        config = None
-        if (api_key == None) or (app_key == None):
-            config = ConfigParser.ConfigParser()
-            if not os.path.isfile(config_file):
-                print "File {0} does not exist!".format(config_file)
-                exit(1)
-
-            config.read(config_file)
-            api_key = config.get('Main', 'api_key')
-            application_key = config.get('Main', 'application_key')
-            if api_key or application
-        else:
-            api.api_key = api_key
-            api.application_key = app_key
+        api.api_key, api.application_key = self.__return_credentials__(api_key, app_key, config_file)
         self.dapi = api
 
         """
         Holds data.  Holds alerts.
         """
         self.alerts = []
+
+    def __return_credentials__(self, api_key, app_key, config_file):
+        """
+        Determines datadog credentials.
+        Api credentials are held here.  They are needed for the
+        load_alerts_from_api() and update_datadog() methods.
+        1.  Use the values supplied at instantiation.
+        2.  If None, see the config file.  self.config_file =  <input values> || '/etc/dd-agent/datadog.conf'
+        """
+
+        """
+        If both api_key and app_key are not None then return their values.
+        """
+        if ((api_key and app_key) is not None):
+            return api_key, app_key
+
+        """
+        Fail if config_file is None or if the path is not legit.
+        """
+        if (config_file is None) or (os.path.isfile(config_file) == False):
+            raise Exception('Do not have a valid config file!!!!!!')
+
+        """
+        At this point the value of config_file is valid.  So parse it.
+        """
+        #pdb.set_trace()
+        config = ConfigParser.ConfigParser()
+        config.read(config_file)
+        api_key = config.get('Main', 'api_key')
+        app_key = config.get('Main', 'application_key')
+        #pdb.set_trace()
+
+        """
+        Make sure we got good values.
+        """
+        if (api_key == '') or (app_key == ''):
+            raise Exception('Bad values!!!!')
+
+        """
+        Everything looks good!
+        """
+        return api_key, app_key
 
     def __str__(self):
         return "%s" % (self.__dict__)
