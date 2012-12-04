@@ -1,8 +1,47 @@
 #!/usr/bin/env python
 """
-This script is kind of a 'cloud formation' for setting up datadog alerts.  There are two main subcommands, getalerts and putalerts.
-Getalerts will get live alerts from datadog and output their descriptions to stdout as a yaml string.  Putalerts will take a yaml file
-as input and either create new alerts or update current ones.
+This script is kind of a 'cloud formation' for setting for managing datadog
+objects.  The two main objects (ATM)  that the script can operate on are alerts
+and dashboards.  See the following usage examples:
+
+
+ALERTS
+Get all alerts:
+# manage_datadog.py alerts get > /tmp/all_alerts.json
+
+Get alert id 5663:
+# manage_datadog.py alerts get -i 5663 > /tmp/alert_5663.json
+
+Update alert id 5663:
+edit /tmp/alert_5663.json. Change data how you like it. DO NOT MODIFY the id.
+# manage_datadog.py alerts put /tmp/alert_5663.json
+
+Delete alert id 5663:
+edit /tmp/alert_5663.json. Change the id to -5663.
+# manage_datadog.py alerts put /tmp/alert_5663.json
+
+Create a alert like 5663
+edit /tmp/alert_5663.json. Change id to 0.
+# manage_datadog.py alerts put /tmp/alert_5663.json
+
+DASHBOARDS
+To get all dahsboards:
+manage_datadog.py dashboards get > /tmp/all_dashes.json
+
+Get dashboard id 5663:
+manage_datadog.py dashboards get -i 5663 > /tmp/dash_5663.json
+
+Update dashboard id 5663:
+edit /tmp/dash_5663.json. Change data how you like it. DO NOT MODIFY the id.
+manage_datadog.py dashboards put /tmp/dash_5663.json
+
+Delete dashboard id 5663:
+edit /tmp/dash_5663.json. Change the id to -5663.
+manage_datadog.py dashboards put /tmp/dash_5663.json
+
+Create a dashboard like 5663
+edit /tmp/dash_5663.json. Change id to 0.
+manage_datadog.py dashboards put /tmp/dash_5663.json
 """
 
 import re
@@ -17,26 +56,14 @@ from dogapi import dog_http_api as api
 
 import pdb
 
-
 class DataDogObject(object):
     def __repr__(self):
-        #return json.dumps(self.__dict__)
         return json.dumps(self.__dict__, indent=4)
-
-    def __return_dict__(self):
-        return self.__dict__
-
-    def to_json(self):
-        return json.dumps(self.__dict__, indent=4)
-
-    def to_yaml(self):
-        return yaml.dumps(self.__return_dict__())
 
     def is_live(self):
         """
-        Determines if a specific alert is already in datadog.
+        Determines if a specific object is already in datadog.
         """
-        #pdb.set_trace()
         if (self.id != 0):
             return True
         else:
@@ -48,21 +75,24 @@ class DataDogObjectCollection(object):
         """
         Get credentials and setup api.
         """
-        api.api_key, api.application_key = self.__return_credentials__(api_key, app_key, config_file)
+        pdb.set_trace()
+        api.api_key, api.application_key = self._return_credentials_(api_key,
+            app_key, config_file)
         self.dapi = api
 
         """
-        Holds data.  Holds alerts.
+        Holds data.
         """
         self.data = []
 
-    def __return_credentials__(self, api_key, app_key, config_file):
+    def _return_credentials_(self, api_key, app_key, config_file):
         """
         Determines datadog credentials.
         Api credentials are held here.  They are needed for the
         load_alerts_from_api() and update_datadog() methods.
         1.  Use the values supplied at instantiation.
-        2.  If None, see the config file.  self.config_file =  <input values> || '/etc/dd-agent/datadog.conf'
+        2.  If None, see the config file.
+        self.config_file =  <input values> || '/etc/dd-agent/datadog.conf'
         """
 
         """
@@ -74,7 +104,7 @@ class DataDogObjectCollection(object):
         """
         Fail if config_file is None or if the path is not legit.
         """
-        if (config_file is None) or (os.path.isfile(config_file) == False):
+        if (config_file is None) or (os.path.isfile(config_file) is False):
             raise Exception('Do not have a valid config file!!!!!!')
 
         """
@@ -104,16 +134,7 @@ class DataDogObjectCollection(object):
 
     def __repr__(self):
         return json.dumps(self.__dict__, indent=4)
-
-    def __return_dict__(self):
         return self.__dict__
-
-    def to_json(self):
-        return json.dumps(self.__dict__, indent=4)
-
-    def to_yaml(self):
-        string = json.dumps(self.data)
-        return yaml.load(string)
 
     def __len__(self):
         return len(self.data)
@@ -124,31 +145,17 @@ class DataDogObjectCollection(object):
     def __getitem__(self, int_key):
         return self.data[int_key]
 
-    def return_id(self, int_id):
+    def get_obj(self, int_id):
         for obj in self.data:
             if obj.id == int_id:
                 return obj
         return None
 
-    def generate_yaml_from_data(self):
-        """
-        Method iterates through self.data and constructs a yaml string
-        from all items.  yaml string is an array of hashes.
-        """
-        yaml_str = '['
-        for alert in self.data:
-            alert_str = '\n'
-            alert_str += yaml.dump(alert, width=9000).rstrip('\n')
-            alert_str = re.sub('!!python/object:__main__.\s+', '', alert_str)
-            alert_str += ','
-            yaml_str += alert_str
-        yaml_str = yaml_str.rstrip(',')
-        yaml_str += '\n]'
-        return yaml_str
 
-    def generate_json_from_data(self):
-        return self.data
-
+        for obj in self.data:
+            if obj.id == int_id:
+                return obj
+        return None
     def do(self, args):
         switch = {'get': self.get,
                   'put': self.put}
@@ -156,13 +163,12 @@ class DataDogObjectCollection(object):
 
     def get(self, args):
         self.load_data_from_api(args.regex)
-        #pdb.set_trace()
 
         if args.get_id != 0:
             data = []
-            data.append(self.return_id(args.get_id))
+            data.append(self.get_obj(args.get_id))
         else:
-            data = self.generate_json_from_data()
+            data = self.data
         print data
 
     def put(self, args):
@@ -177,10 +183,17 @@ class Alert(DataDogObject):
     def __init__(self, alert_dict):
         """
         alert_dict must have the following:
-            alert_dict['id']:       Integer.  The id of the alert.  This is None on new alert creation.
-            alert_dict['message']:  String.  Describes how alert will inform of problem (ie. pagerduty)
-            alert_dict['name']:     String.  The name description of the alert.
-            alert_dict['query']:    String.  The guts of the alert.  See the docs on the datadog alert api for more info.
+            alert_dict['id']:  Integer.  The id of the alert.  This is None
+            on new alert creation.
+
+            alert_dict['message']:  String.  Describes how alert will inform
+            of problem (ie. pagerduty)
+
+            alert_dict['name']:  String.  The name description of the alert.
+
+            alert_dict['query']:  String.  The guts of the alert.  See the
+            docs on the datadog alert api for more info.
+
             alert_dict['silenced']: Boolean.  Mute or not.
         """
         self.id = alert_dict['id']
@@ -194,12 +207,11 @@ class Alerts(DataDogObjectCollection):
     """
     Collection of alerts.
     """
-
     def load_data_from_api(self, regex_str):
         """
         Usese datadog method get_all_alerts to get all alerts.
-        If regex_str is specified then regex is applied to 'name' field for each alert.
-        Otherwise regex_str = '' and will match every alert.
+        If regex_str is specified then regex is applied to 'name' field for
+        each alert.  Otherwise regex_str = '' and will match every alert.
         """
 
         # Get all the alerts from datadog.
@@ -218,9 +230,14 @@ class Alerts(DataDogObjectCollection):
 
     def load_data_from_file(self, file_path):
         """
-        Loads all alerts listed in file 'file_path'.  The format of the file should be as follows:
+        Loads all alerts listed in file 'file_path'.
+        The format of the file should be as follows:
             [
-             {id: <int>, message: <string>, name: <string>, query: <string>, silenced: <boolean>},
+             {id: <int>,
+             message: <string>,
+             name: <string>,
+             query: <string>,
+             silenced: <boolean>},
              ...
             ]
         """
@@ -233,22 +250,30 @@ class Alerts(DataDogObjectCollection):
     def update_datadog(self):
         """
         Update datadog with data in self.data.
-        To create a new alert:  Leave the id attribute None.  This will create a new alert.
-        To update the alert:  id must have a valid positive integer that maps to a current event.
-        To delet an event: make the id a negative number.  This will delete the alert.
+        To create a new alert:  Leave the id attribute None.  This will create
+        a new alert.
+
+        To update the alert:  id must have a valid positive integer that maps
+        to a current event.
+
+        To delet an event: make the id a negative number.  This will delete the
+        alert.
         """
         for alert in self.data:
             if alert.is_live():
                 if alert.id < 0:
                     self.dapi.delete_alert(abs(alert.id))
                 else:
-                    self.dapi.update_alert(alert.id, alert.query, alert.name, alert.message, alert.silenced)
+                    self.dapi.update_alert(alert.id, alert.query, alert.name,
+                        alert.message, alert.silenced)
             else:
-                self.dapi.alert(alert.query, alert.name, alert.message, alert.silenced)
+                self.dapi.alert(alert.query, alert.name, alert.message,
+                    alert.silenced)
 
 
 class Dashbrd(DataDogObject):
     """
+    Holds dashboard data.
     """
     def __init__(self, dash_dict):
         self.id = dash_dict['id']
@@ -258,12 +283,12 @@ class Dashbrd(DataDogObject):
 
 
 class Dashbrds(DataDogObjectCollection):
-
     def load_data_from_api(self, regex_str):
         """
-        Usese datadog method get_all_alerts to get all alerts.
-        If regex_str is specified then regex is applied to 'name' field for each alert.
-        Otherwise regex_str = '' and will match every alert.
+        Uses datadog method dashboards to get all dashboards.
+        If regex_str is specified then regex is applied to 'title' field for
+        each dashboard.  Otherwise regex_str = '' and will match every
+        dashboard.
         """
 
         # Get all the alerts from datadog.
@@ -292,18 +317,25 @@ class Dashbrds(DataDogObjectCollection):
     def update_datadog(self):
         """
         Update datadog with data in self.data.
-        To create a new alert:  Leave the id attribute None.  This will create a new alert.
-        To update the alert:  id must have a valid positive integer that maps to a current event.
-        To delet an event: make the id a negative number.  This will delete the alert.
+        To create a new dashboard:  Leave the id attribute 0.  This will create
+        a new dashboard.
+
+        To update a dashboard:  id must have a valid positive integer that maps
+        to a current event.
+
+        To delet an event: make the id a negative number.  This will delete the
+        dashboard.
         """
         for obj in self.data:
             if obj.is_live():
                 if obj.id < 0:
                     self.dapi.delete_dashboard(abs(obj.id))
                 else:
-                    self.dapi.update_dashboard(obj.id, obj.title, obj.description, obj.graphs)
+                    self.dapi.update_dashboard(obj.id, obj.title,
+                        obj.description, obj.graphs)
             else:
-                self.dapi.create_dashboard(obj.title, obj.description, obj.graphs)
+                self.dapi.create_dashboard(obj.title, obj.description,
+                    obj.graphs)
 
         return self.data
 
@@ -311,30 +343,36 @@ class Dashbrds(DataDogObjectCollection):
 def cmd_line(argv):
     """
     Get the command line arguments and options.
+    Global options.
     """
     parser = argparse.ArgumentParser(description="Manage datadog alerts")
-    parser.add_argument('-c', '--config', default='/etc/dd-agent/datadog.conf',
-            help='Specify datadog config file to get api key info.')
+    parser.add_argument('-c', '--config-file',
+        default='/etc/dd-agent/datadog.conf',
+        help='Specify datadog config file to get api key info.')
     parser.add_argument('--api-key', default=None, help='Specify API key.')
     parser.add_argument('--app-key', default=None, help='Specify APP key.')
-    parser.add_argument('-y', '--use-yaml', action='store_true', default=False, help='All output/input will use yaml.')
     subparsers = parser.add_subparsers(dest='subparser_name')
 
-    # Parent parser
-    parent_parser = argparse.ArgumentParser(add_help=False)
-    parent_parser.add_argument('-i', '--get-id', type=int, default=0)
-    parent_parser.add_argument('-r', '--regex', help='Regex string to use when selecting events.')
+    """Parent parsers"""
+    get_parent_parser = argparse.ArgumentParser(add_help=False)
+    get_parent_parser.add_argument('-i', '--get-id', type=int, default=0,
+        help='Specify an id of an object to retrieve.  [INTEGER]')
+    get_parent_parser.add_argument('-r', '--regex',
+        help='Regex string to use when selecting events.')
 
     # alerts
     alerts = subparsers.add_parser('alerts',
-            description='Manage DataDog alerts.', help='Manage DataDog alerts.')
+            description='Manage DataDog alerts.',
+            help='Manage DataDog alerts.')
     alert_sub = alerts.add_subparsers(dest='sub_subparser_name')
     alert_get = alert_sub.add_parser('get',
-            description='Gets the alerts from datadog and prints them to stdout.', help='get alerts from datadog',
-            parents=[parent_parser])
+            description='Gets the alerts from datadog.',
+            help='get alerts from datadog', parents=[get_parent_parser])
     alert_put = alert_sub.add_parser('put',
-            description='Takes alerts from file argument and puts them in datadog.', help='put alerts to datadog')
-    alert_put.add_argument('from_file', help='Use given file to create alerts. REQUIRED')
+            description='Takes alerts from file argument and puts them in datadog.',
+            help='put alerts to datadog')
+    alert_put.add_argument('from_file',
+        help='Use given file to create alerts. REQUIRED')
 
     # dashboards
     dash = subparsers.add_parser('dashboards',
@@ -342,29 +380,13 @@ def cmd_line(argv):
     dash_sub = dash.add_subparsers(dest='sub_subparser_name')
     dash_get = dash_sub.add_parser('get',
             description='Get dashboards from datadog.', help='Get dashboards from datadog.',
-            parents=[parent_parser])
+            parents=[get_parent_parser])
     dash_put = dash_sub.add_parser('put',
             description='Put dashboards to datadog.', help='Put dashboards to datadog.')
     dash_put.add_argument('from_file', help='Use given file to create alerts. REQUIRED')
 
     args = parser.parse_args()
     return args
-
-
-def alert_ops(args):
-    """
-    Gets the alerts from datadog and prints them to stdout.
-    """
-    ddogAlerts = Alerts(args.api_key, args.app_key, args.config)
-    ddogAlerts.do(args)
-
-
-def dash_ops(args):
-    """
-    dashboard operations.
-    """
-    ddogDashbrds = Dashbrds(args.api_key, args.app_key, args.config)
-    ddogDashbrds.do(args)
 
 
 def main():
@@ -375,10 +397,12 @@ def main():
     args = cmd_line(sys.argv)
 
     # case/switch dictionary.
-    switch = {'alerts': alert_ops,
-              'alerts': alert_ops,
-              'dashboards': dash_ops}
-    switch[args.subparser_name](args)
+    switch = {'alerts': Alerts,
+              'dashboards': Dashbrds}
+    pdb.set_trace()
+    DDogObjColl = switch[args.subparser_name](args.api_key,args.app_key,
+        args.config_file)
+    DDogObjColl.do(args)
 
     exit(0)
 
